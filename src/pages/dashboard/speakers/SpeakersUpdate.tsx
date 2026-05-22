@@ -1,25 +1,42 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
-import { useNavigate } from "react-router-dom";
-import { useCreateSpeaker } from "../../../Hooks/useSpeakers"; // Sesuaikan path relative ke hooks kamu
+import { useNavigate, useParams } from "react-router-dom";
+import { useGetSpeakerById, useUpdateSpeaker } from "../../../Hooks/useSpeakers"; // Sesuaikan path relative ke hooks kamu
 
-// Schema Zod diperbarui dengan menambahkan field image
+// Schema Zod untuk validasi data Speaker saat update
 const speakerSchema = z.object({
   name: z.string().min(1, "Speaker name is required"),
   role: z.string().min(1, "Role is required"),
   image: z.string().url("Must be a valid image URL").min(1, "Speaker image URL is required"),
 });
 
-export default function SpeakerCreate() {
-  const navigate = useNavigate();
-  const createSpeakerMutation = useCreateSpeaker();
+export default function SpeakersUpdate() {
+  const { id } = useParams<{ id: string }>(); // Tangkap ID pembicara dari URL
+  const speakerId = Number(id); // Konversi ke tipe number (Int Prisma)
 
-  const [formData, setFormData] = useState({ 
-    name: "", 
+  const navigate = useNavigate();
+
+  // Fetch data pembicara lama & panggil fungsi mutasi update
+  const { data: currentSpeaker, isLoading, isError } = useGetSpeakerById(speakerId);
+  const updateSpeakerMutation = useUpdateSpeaker();
+
+  const [formData, setFormData] = useState({
+    name: "",
     role: "",
-    image: "" // Ditambahkan state properti image
+    image: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Isi form secara otomatis begitu data pembicara lama berhasil ditarik dari Railway
+  useEffect(() => {
+    if (currentSpeaker) {
+      setFormData({
+        name: currentSpeaker.name,
+        role: currentSpeaker.role,
+        image: currentSpeaker.image,
+      });
+    }
+  }, [currentSpeaker]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -38,24 +55,47 @@ export default function SpeakerCreate() {
     } else {
       setErrors({});
 
-      // Eksekusi kirim data ke API Railway via React Query mutator
-      createSpeakerMutation.mutate(result.data, {
-        onSuccess: () => {
-          alert(`Speaker "${formData.name}" berhasil disimpan!`);
-          navigate("/dashboard/speakers"); // Otomatis balik ke halaman list pembicara
+      // Jalankan mutasi update data ke API backend Railway
+      updateSpeakerMutation.mutate(
+        {
+          id: speakerId,
+          updatedData: result.data,
         },
-        onError: (error: any) => {
-          alert(`Gagal menyimpan: ${error?.response?.data?.message || error.message}`);
+        {
+          onSuccess: () => {
+            alert(`Data pembicara "${formData.name}" berhasil diperbarui!`);
+            navigate("/dashboard/speakers"); // Balik ke halaman list utama pembicara
+          },
+          onError: (error: any) => {
+            alert(`Gagal memperbarui data: ${error?.response?.data?.message || error.message}`);
+          },
         }
-      });
+      );
     }
   };
 
+  if (isLoading) return <div className="text-center mt-10 text-gray-500">Memuat data pembicara lama...</div>;
+  if (isError) return <div className="text-center mt-10 text-red-600">Gagal memuat data. Pembicara tidak ditemukan.</div>;
+
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-      <h2 className="text-xl font-bold text-center text-gray-800 mb-6">Add New Speaker</h2>
+      <h2 className="text-xl font-bold text-center text-gray-800 mb-6">Edit Speaker Details</h2>
 
       <div className="flex flex-col gap-4">
+        {/* Preview Avatar Saat Ini */}
+        {formData.image && !errors.image && (
+          <div className="flex justify-center mb-2">
+            <img
+              src={formData.image}
+              alt="Preview"
+              className="w-20 h-20 object-cover rounded-full border border-gray-200 shadow-sm"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none'; // Sembunyikan preview jika URL salah sewaktu mengetik
+              }}
+            />
+          </div>
+        )}
+
         {/* Speaker Name */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -92,7 +132,7 @@ export default function SpeakerCreate() {
           )}
         </div>
 
-        {/* Image URL Input (DITAMBAHKAN AGAR COCOK DENGAN PRISMA) */}
+        {/* Image URL Input */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1">
             Image URL
@@ -121,10 +161,10 @@ export default function SpeakerCreate() {
           </button>
           <button
             onClick={handleSave}
-            disabled={createSpeakerMutation.isPending}
+            disabled={updateSpeakerMutation.isPending}
             className="bg-red-900 text-white font-semibold py-2.5 px-8 rounded-lg hover:bg-red-800 transition-colors shadow-sm active:scale-[0.98] disabled:opacity-50"
           >
-            {createSpeakerMutation.isPending ? "Adding..." : "Add"}
+            {updateSpeakerMutation.isPending ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>
