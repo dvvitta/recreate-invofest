@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCreateCategory } from "../../../Hooks/useCategories"; // Sesuaikan path relative ke hooks kamu
+import { useCreateCategory } from "../../../Hooks/useCategories"; 
 
 export default function CategoryCreate() {
   const navigate = useNavigate();
@@ -17,13 +17,13 @@ export default function CategoryCreate() {
     } else {
       setHasError(false);
       
-      // 2. Kirim payload objek { name: "..." } sesuai kebutuhan Prisma backend
+      // 2. Kirim payload objek 
       createCategoryMutation.mutate(
         { name: categoryName },
         {
           onSuccess: () => {
-            alert(`Category "${categoryName}" berhasil disimpan ke Railway!`);
-            navigate("/dashboard/category"); // Balik ke halaman list tabel kategori
+            alert(`Category "${categoryName}" berhasil disimpan!`);
+            navigate("/dashboard/category"); 
           },
           onError: (error: any) => {
             alert(`Gagal menyimpan: ${error?.response?.data?.message || error.message}`);
@@ -53,10 +53,9 @@ export default function CategoryCreate() {
               hasError
                 ? "border-red-500 focus:ring-2 focus:ring-red-200"
                 : "border-gray-300 focus:ring-2 focus:ring-red-900/20 focus:border-red-900" 
-                // Mengubah ring fokus biru menjadi merah bata agar senada dengan warna tombol Add kamu
             }`}
             placeholder="e.g. Technology"
-            disabled={createCategoryMutation.isPending} // Kunci input jika sedang loading
+            disabled={createCategoryMutation.isPending} 
           />
           {hasError && (
             <p className="text-red-500 text-xs mt-1 font-medium">
@@ -76,7 +75,7 @@ export default function CategoryCreate() {
           </button>
           <button
             onClick={handleSaveClick}
-            disabled={createCategoryMutation.isPending} // Cegah spam-click database
+            disabled={createCategoryMutation.isPending} 
             className="bg-red-900 text-white hover:bg-red-800 font-semibold py-2.5 px-8 rounded-lg transition-colors shadow-sm active:scale-[0.98] disabled:opacity-50"
           >
             {createCategoryMutation.isPending ? "Adding..." : "Add"}

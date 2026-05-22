@@ -48,6 +48,14 @@ export default function DashboardLayout() {
             >
               Speakers
             </Link>
+            
+            {/* TAMBAHKAN LINK MENU BIODATA DI SINI */}
+            <Link
+              to="/dashboard/biodata"
+              className={`p-3 rounded-lg transition-all ${isActive("/dashboard/biodata") ? "bg-red-50 text-red-900 font-semibold" : "hover:bg-red-50 hover:text-red-900"}`}
+            >
+              Biodata
+            </Link>
           </div>
         </div>
 

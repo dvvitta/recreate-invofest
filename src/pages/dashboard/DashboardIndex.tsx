@@ -51,46 +51,6 @@ export default function DashboardIndex() {
           </div>
         ))}
       </div>
-
-      {/* Welcome Section */}
-      {/* Biodata Mahasiswa Section */}
-      <div className="mt-8 p-8 bg-white border border-gray-200 rounded-xl shadow-sm">
-        <h2 className="text-xl font-bold text-gray-800 border-b border-gray-100 pb-3 mb-4">
-          Biodata Mahasiswa
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8 max-w-2xl text-sm">
-          <div className="flex border-b border-gray-50 pb-2">
-            <span className="w-28 font-semibold text-gray-500">Nama</span>
-            <span className="text-gray-800">: Devita Anggareni</span>
-          </div>
-
-          <div className="flex border-b border-gray-50 pb-2">
-            <span className="w-28 font-semibold text-gray-500">Semester</span>
-            <span className="text-gray-800">: 4 (Empat)</span>
-          </div>
-
-          <div className="flex border-b border-gray-50 pb-2">
-            <span className="w-28 font-semibold text-gray-500">NIM</span>
-            <span className="text-gray-800">: 24090026</span>
-          </div>
-
-          <div className="flex border-b border-gray-50 pb-2">
-            <span className="w-28 font-semibold text-gray-500">Prodi</span>
-            <span className="text-gray-800">: D4 Teknik Informatika</span>
-          </div>
-
-          <div className="flex border-b border-gray-50 pb-2">
-            <span className="w-28 font-semibold text-gray-500">Kelas</span>
-            <span className="text-gray-800">: 4B</span>
-          </div>
-
-          <div className="flex border-b border-gray-50 pb-2">
-            <span className="w-28 font-semibold text-gray-500">Kampus</span>
-            <span className="text-gray-800">: Universitas Harkat Negeri</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

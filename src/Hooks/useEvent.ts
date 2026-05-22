@@ -1,6 +1,6 @@
 // src/hooks/useEvents.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '../api/axiosInstance';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import api from "../api/axiosInstance";
 
 // 1. Definisikan Interface Sesuai Skema Prisma
 export interface CategoryData {
@@ -16,14 +16,14 @@ export interface SpeakerData {
 }
 
 export interface EventData {
-  id: number;          // @id @default(autoincrement()) -> Int
-  name: string;        // String
-  location: string;    // String
-  dateEvent: string;   // DateTime di DB (diterima sebagai ISO String di FE)
-  description: string; // Text
-  categoryId: number;  // @map("category_id") -> Int
-  speakerId: number;   // @map("speaker_id") -> Int
-  
+  id: number; 
+  name: string; 
+  location: string; 
+  dateEvent: string; 
+  description: string; 
+  categoryId: number; 
+  speakerId: number; 
+
   // Properti relasi opsional (tergantung include dari backend Express)
   category?: CategoryData;
   speaker?: SpeakerData;
@@ -32,9 +32,9 @@ export interface EventData {
 // 2. Hook untuk AMBIL SEMUA EVENT (Read)
 export function useGetEvents() {
   return useQuery<EventData[]>({
-    queryKey: ['events'],
+    queryKey: ["events"],
     queryFn: async () => {
-      const response = await api.get('/events'); 
+      const response = await api.get("/events");
       return response.data;
     },
   });
@@ -46,13 +46,13 @@ export function useCreateEvent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (newEvent: Omit<EventData, 'id'>) => {
-      const response = await api.post('/events', newEvent);
+    mutationFn: async (newEvent: Omit<EventData, "id">) => {
+      const response = await api.post("/events", newEvent);
       return response.data;
     },
     onSuccess: () => {
       // Otomatis refresh list event di UI tanpa reload halaman!
-      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
     },
   });
 }
@@ -62,23 +62,21 @@ export function useDeleteEvent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: number) => { // Tipe parameter diubah ke number mengikuti tipe ID Prisma
+    mutationFn: async (id: number) => {
+      // Tipe parameter diubah ke number mengikuti tipe ID Prisma
       const response = await api.delete(`/events/${id}`);
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
     },
   });
 }
 
-
-// Tambahkan di bagian bawah src/hooks/useEvents.ts
-
 // Hook untuk AMBIL DETAIL SATU EVENT (Read by ID)
 export function useGetEventById(id: number) {
   return useQuery<EventData>({
-    queryKey: ['event', id],
+    queryKey: ["event", id],
     queryFn: async () => {
       const response = await api.get(`/events/${id}`);
       return response.data;
@@ -92,14 +90,20 @@ export function useUpdateEvent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, updatedData }: { id: number; updatedData: Omit<EventData, 'id'> }) => {
-      const response = await api.put(`/events/${id}`, updatedData); // Menggunakan method PUT atau PATCH sesuai BE kamu
+    mutationFn: async ({
+      id,
+      updatedData,
+    }: {
+      id: number;
+      updatedData: Omit<EventData, "id">;
+    }) => {
+      const response = await api.put(`/events/${id}`, updatedData);
       return response.data;
     },
     onSuccess: (_, variables) => {
       // Refresh list utama dan detail cache spesifik event ini agar datanya sinkron
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['event', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      queryClient.invalidateQueries({ queryKey: ["event", variables.id] });
     },
   });
 }

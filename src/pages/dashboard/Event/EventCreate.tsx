@@ -2,11 +2,13 @@ import { useState } from "react";
 import { z } from "zod";
 import { useNavigate } from "react-router-dom";
 import { useCreateEvent } from "../../../Hooks/useEvent"; // Sesuaikan path hooks kamu
-import { useGetCategories } from "../../../Hooks/useCategories"; // 1. Import hook ambil kategori
+import { useGetCategories } from "../../../Hooks/useCategories"; // Hook ambil kategori
+import { useGetSpeakers } from "../../../Hooks/useSpeakers"; // Hook ambil pembicara
 
 const eventSchema = z.object({
   name: z.string().min(1, "Event name is required"),
   category: z.string().min(1, "Category is required"),
+  speaker: z.string().min(1, "Speaker is required"), // Validasi zod untuk speaker
   date: z.string().min(1, "Date is required"),
   location: z.string().min(1, "Location is required"),
   description: z.string().min(10, "Description must be at least 10 characters"),
@@ -16,19 +18,20 @@ export default function EventCreate() {
   const navigate = useNavigate();
   const createEventMutation = useCreateEvent();
   
-  // 2. Ambil data list kategori untuk dropdown
+  // 2. Ambil data list kategori dan list speaker untuk dropdown
   const { data: categories, isLoading: isLoadingCategories } = useGetCategories();
+  const { data: speakers, isLoading: isLoadingSpeakers } = useGetSpeakers();
 
   const [formData, setFormData] = useState({
     name: "",
     category: "",
+    speaker: "", // State untuk menampung pilihan ID speaker
     date: "",
     location: "",
     description: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Mengatasi perubahan baik untuk input teks maupun dropdown select
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
@@ -54,9 +57,9 @@ export default function EventCreate() {
         description: result.data.description,
         dateEvent: new Date(result.data.date).toISOString(),
         
-        // Nilai value dari <select> otomatis terkonversi jadi Int angka yang valid
+        // Konversi string value dropdown menjadi Integer Int Prisma
         categoryId: Number(result.data.category),
-        speakerId: 1, // Default sementara waktu
+        speakerId: Number(result.data.speaker), // 3. ID Speaker dinamis sesuai pilihan dropdown
       };
 
       createEventMutation.mutate(payload, {
@@ -94,7 +97,7 @@ export default function EventCreate() {
           )}
         </div>
 
-        {/* Category Dropdown (UBAH JADI SELECT ELEMENT) */}
+        {/* Category Dropdown */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1">
             Category
@@ -111,8 +114,6 @@ export default function EventCreate() {
             <option value="">
               {isLoadingCategories ? "Memuat kategori..." : "-- Pilih Kategori Event --"}
             </option>
-            
-            {/* Loop data kategori asli dari DB */}
             {categories?.map((cat) => (
               <option key={cat.id} value={cat.id}>
                 {cat.name}
@@ -121,6 +122,34 @@ export default function EventCreate() {
           </select>
           {errors.category && (
             <p className="text-red-500 text-xs mt-1">{errors.category}</p>
+          )}
+        </div>
+
+        {/* 4. Speaker Dropdown (UBAH MENJADI SELECT DROPDOWN DINAMIS) */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">
+            Speaker
+          </label>
+          <select
+            name="speaker"
+            value={formData.speaker}
+            onChange={handleInputChange}
+            className={`w-full px-4 py-2 border rounded-lg bg-white outline-none cursor-pointer ${
+              errors.speaker ? "border-red-500" : "border-gray-300"
+            }`}
+            disabled={isLoadingSpeakers}
+          >
+            <option value="">
+              {isLoadingSpeakers ? "Memuat pembicara..." : "-- Pilih Speaker Event --"}
+            </option>
+            {speakers?.map((spk) => (
+              <option key={spk.id} value={spk.id}>
+                {spk.name} ({spk.role})
+              </option>
+            ))}
+          </select>
+          {errors.speaker && (
+            <p className="text-red-500 text-xs mt-1">{errors.speaker}</p>
           )}
         </div>
 
@@ -187,7 +216,7 @@ export default function EventCreate() {
           </button>
           <button
             onClick={handleSave}
-            disabled={createEventMutation.isPending || isLoadingCategories}
+            disabled={createEventMutation.isPending || isLoadingCategories || isLoadingSpeakers}
             className="bg-red-900 text-white font-semibold py-2.5 px-8 rounded-lg hover:bg-red-800 transition-colors shadow-sm active:scale-[0.98] disabled:opacity-50"
           >
             {createEventMutation.isPending ? "Adding..." : "Add"}
