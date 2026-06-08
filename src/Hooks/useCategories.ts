@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api/axiosInstance';
 
 export interface CategoryData {
-  id: number; // Menggunakan Int sesuai Prisma
+  id: number; 
   name: string;
 }
 

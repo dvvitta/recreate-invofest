@@ -11,7 +11,13 @@ export default function DashboardLayout() {
     navigate("/login");
   };
 
-  const isActive = (path: string) => location.pathname === path;
+  // Diperbarui agar menu tetap aktif meskipun sedang di sub-route (misal: /dashboard/event/create)
+  const isActive = (path: string) => {
+    if (path === "/dashboard") {
+      return location.pathname === "/dashboard";
+    }
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <div className="flex min-h-screen w-full bg-gray-50">
@@ -49,7 +55,15 @@ export default function DashboardLayout() {
               Speakers
             </Link>
             
-            {/* TAMBAHKAN LINK MENU BIODATA DI SINI */}
+            {/* ---- MENU USERS DITAMBAHKAN DI SINI ---- */}
+            <Link
+              to="/dashboard/users"
+              className={`p-3 rounded-lg transition-all ${isActive("/dashboard/users") ? "bg-red-50 text-red-900 font-semibold" : "hover:bg-red-50 hover:text-red-900"}`}
+            >
+              Users
+            </Link>
+            {/* ---------------------------------------- */}
+
             <Link
               to="/dashboard/biodata"
               className={`p-3 rounded-lg transition-all ${isActive("/dashboard/biodata") ? "bg-red-50 text-red-900 font-semibold" : "hover:bg-red-50 hover:text-red-900"}`}

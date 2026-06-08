@@ -17,7 +17,7 @@ export default function SpeakerCreate() {
   const [formData, setFormData] = useState({ 
     name: "", 
     role: "",
-    image: "" // Ditambahkan state properti image
+    image: "" 
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 

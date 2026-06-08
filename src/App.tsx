@@ -21,6 +21,9 @@ import EventEdit from "./pages/dashboard/Event/EventUpdate";
 import CategoryEdit from "./pages/dashboard/category/categoryUpdate";
 import SpeakersUpdate from "./pages/dashboard/speakers/SpeakersUpdate"; 
 import BiodataIndex from "./pages/dashboard/biodata/biodataIndex";
+import UsersIndex from "./pages/dashboard/users/UsersIndex";
+import UsersCreate from "./pages/dashboard/users/UsersCreate";
+import UsersUpdate from "./pages/dashboard/users/UsersUpdate";
 function App() {
   return (
     <div>
@@ -61,6 +64,11 @@ function App() {
 
               {/* 2. ▲ DAFTARKAN RUTE BIODATA DI SINI (Di dalam struktur DashboardLayout) */}
               <Route path="/dashboard/biodata" element={<BiodataIndex />} />
+
+              {/* 3. ▲ DAFTARKAN RUTE USERS DI SINI (Di dalam struktur DashboardLayout) */}
+              <Route path="/dashboard/users" element={<UsersIndex />} />
+              <Route path="/dashboard/users/create" element={<UsersCreate />} />
+              <Route path="/dashboard/users/edit/:id" element={<UsersUpdate />} />
             </Route>
           </Route>
         </Routes>
