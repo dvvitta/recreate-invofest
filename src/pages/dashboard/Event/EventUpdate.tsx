@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useNavigate, useParams } from "react-router-dom";
-import { useGetEventById, useUpdateEvent } from "../../../Hooks/useEvent"; // Sesuaikan path hooks kamu
-import { useGetCategories } from "../../../Hooks/useCategories"; // Hook ambil kategori
+import { useGetEventById, useUpdateEvent } from "../../../Hooks/useEvent";
+import { useGetCategories } from "../../../Hooks/useCategories";
 import { useGetSpeakers } from "../../../Hooks/useSpeakers";
+import toast from "react-hot-toast"; 
 
 const eventSchema = z.object({
   name: z.string().min(1, "Event name is required"),
@@ -19,8 +20,11 @@ export default function EventUpdate() {
   const eventId = Number(id);
   const navigate = useNavigate();
 
-  // 1. Ambil data event lama, list kategori, dan list speaker dari server
-  const { data: currentEvent, isLoading: isLoadingEvent, isError } = useGetEventById(eventId);
+  const {
+    data: currentEvent,
+    isLoading: isLoadingEvent,
+    isError,
+  } = useGetEventById(eventId);
   const { data: categories, isLoading: isLoadingCategories } = useGetCategories();
   const { data: speakers, isLoading: isLoadingSpeakers } = useGetSpeakers();
 
@@ -36,12 +40,10 @@ export default function EventUpdate() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 2. Masukkan data event lama ke dalam form secara otomatis begitu berhasil di-load
   useEffect(() => {
     if (currentEvent) {
-      // Ambil format YYYY-MM-DD dari string ISO date agar bisa dibaca input type="date"
-      const formattedDate = currentEvent.dateEvent 
-        ? currentEvent.dateEvent.split("T")[0] 
+      const formattedDate = currentEvent.dateEvent
+        ? currentEvent.dateEvent.split("T")[0]
         : "";
 
       setFormData({
@@ -56,7 +58,9 @@ export default function EventUpdate() {
   }, [currentEvent]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -71,6 +75,7 @@ export default function EventUpdate() {
         fieldErrors[issue.path[0] as string] = issue.message;
       });
       setErrors(fieldErrors);
+      toast.error("Tolong periksa kembali isi form!", { id: "validation-update-event" });
     } else {
       setErrors({});
 
@@ -83,28 +88,74 @@ export default function EventUpdate() {
         speakerId: Number(result.data.speaker),
       };
 
-      // Jalankan mutasi update data ke backend via React Query
-      updateEventMutation.mutate(
-        { id: eventId, updatedData: payload },
-        {
-          onSuccess: () => {
-            alert("Perubahan data event berhasil disimpan!");
-            navigate("/dashboard/event");
+      const updateEventPromise = new Promise((resolve, reject) => {
+        updateEventMutation.mutate(
+          { id: eventId, updatedData: payload },
+          {
+            onSuccess: () => {
+              resolve(`Perubahan data event "${formData.name}" berhasil disimpan!`);
+              setTimeout(() => {
+                navigate("/dashboard/event");
+              }, 1000);
+            },
+            onError: (error: any) => {
+              const errorMessage = error.response?.data?.message || error.message || "Gagal memperbarui data event.";
+              reject(errorMessage);
+            },
           },
-          onError: (error: any) => {
-            alert(`Gagal memperbarui: ${error?.response?.data?.message || error.message}`);
+        );
+      });
+
+      toast.promise(updateEventPromise, {
+        loading: "Sedang menyimpan perubahan data event...",
+        success: (msg: any) => `${msg}`,
+        error: (err: any) => `${err}`,
+      }, {
+        style: {
+          borderRadius: "12px",
+          background: "#333",
+          color: "#fff",
+          fontSize: "14px",
+        },
+        success: {
+          duration: 2000,
+          iconTheme: {
+            primary: "#7f1d1d", 
+            secondary: "#fff",
           },
-        }
-      );
+        },
+      });
     }
   };
 
-  if (isLoadingEvent) return <div className="text-center mt-10 text-gray-500">Memuat detail event...</div>;
-  if (isError) return <div className="text-center mt-10 text-red-600">Gagal memuat data. Event tidak ditemukan.</div>;
+  const isFormDisabled = updateEventMutation.isPending || isLoadingCategories || isLoadingSpeakers;
+
+  if (isLoadingEvent)
+    return (
+      <div className="flex justify-center items-center py-24 gap-2">
+        <div className="w-5 h-5 border-2 border-red-900 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-gray-500 text-sm">Memuat detail event...</p>
+      </div>
+    );
+
+  if (isError)
+    return (
+      <div className="max-w-md mx-auto mt-10 p-6 bg-white border border-gray-200 rounded-xl shadow-sm text-center">
+        <p className="text-red-600 font-medium mb-4">Gagal memuat data. Event tidak ditemukan.</p>
+        <button 
+          onClick={() => navigate("/dashboard/event")}
+          className="text-sm font-semibold text-gray-600 hover:underline"
+        >
+          Kembali ke Manajemen Event
+        </button>
+      </div>
+    );
 
   return (
     <div className="max-w-lg mx-auto mt-10 p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-      <h2 className="text-xl font-bold text-center text-gray-800 mb-6">Edit Event Details</h2>
+      <h2 className="text-xl font-bold text-center text-gray-800 mb-6">
+        Edit Event Details
+      </h2>
 
       <div className="flex flex-col gap-4">
         {/* Event Name */}
@@ -115,10 +166,13 @@ export default function EventUpdate() {
           <input
             name="name"
             type="text"
+            disabled={isFormDisabled}
             value={formData.name}
             onChange={handleInputChange}
             placeholder="Event Name"
-            className={`w-full px-4 py-2 border rounded-lg outline-none ${errors.name ? "border-red-500" : "border-gray-300"}`}
+            className={`w-full px-4 py-2 border rounded-lg outline-none transition-all ${
+              errors.name ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
+            } ${isFormDisabled ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
           />
           {errors.name && (
             <p className="text-red-500 text-xs mt-1">{errors.name}</p>
@@ -134,13 +188,15 @@ export default function EventUpdate() {
             name="category"
             value={formData.category}
             onChange={handleInputChange}
-            className={`w-full px-4 py-2 border rounded-lg bg-white outline-none cursor-pointer ${
-              errors.category ? "border-red-500" : "border-gray-300"
-            }`}
-            disabled={isLoadingCategories}
+            className={`w-full px-4 py-2 border rounded-lg bg-white outline-none cursor-pointer transition-all ${
+              errors.category ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
+            } ${isFormDisabled ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
+            disabled={isFormDisabled}
           >
             <option value="">
-              {isLoadingCategories ? "Memuat kategori..." : "-- Pilih Kategori Event --"}
+              {isLoadingCategories
+                ? "Memuat kategori..."
+                : "-- Pilih Kategori Event --"}
             </option>
             {categories?.map((cat) => (
               <option key={cat.id} value={cat.id}>
@@ -162,13 +218,15 @@ export default function EventUpdate() {
             name="speaker"
             value={formData.speaker}
             onChange={handleInputChange}
-            className={`w-full px-4 py-2 border rounded-lg bg-white outline-none cursor-pointer ${
-              errors.speaker ? "border-red-500" : "border-gray-300"
-            }`}
-            disabled={isLoadingSpeakers}
+            className={`w-full px-4 py-2 border rounded-lg bg-white outline-none cursor-pointer transition-all ${
+              errors.speaker ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
+            } ${isFormDisabled ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
+            disabled={isFormDisabled}
           >
             <option value="">
-              {isLoadingSpeakers ? "Memuat pembicara..." : "-- Pilih Speaker Event --"}
+              {isLoadingSpeakers
+                ? "Memuat pembicara..."
+                : "-- Pilih Speaker Event --"}
             </option>
             {speakers?.map((spk) => (
               <option key={spk.id} value={spk.id}>
@@ -189,9 +247,12 @@ export default function EventUpdate() {
           <input
             name="date"
             type="date"
+            disabled={isFormDisabled}
             value={formData.date}
             onChange={handleInputChange}
-            className={`w-full px-4 py-2 border rounded-lg outline-none ${errors.date ? "border-red-500" : "border-gray-300"}`}
+            className={`w-full px-4 py-2 border rounded-lg outline-none transition-all ${
+              errors.date ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
+            } ${isFormDisabled ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
           />
           {errors.date && (
             <p className="text-red-500 text-xs mt-1">{errors.date}</p>
@@ -206,10 +267,13 @@ export default function EventUpdate() {
           <input
             name="location"
             type="text"
+            disabled={isFormDisabled}
             value={formData.location}
             onChange={handleInputChange}
             placeholder="Location"
-            className={`w-full px-4 py-2 border rounded-lg outline-none ${errors.location ? "border-red-500" : "border-gray-300"}`}
+            className={`w-full px-4 py-2 border rounded-lg outline-none transition-all ${
+              errors.location ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
+            } ${isFormDisabled ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
           />
           {errors.location && (
             <p className="text-red-500 text-xs mt-1">{errors.location}</p>
@@ -223,10 +287,13 @@ export default function EventUpdate() {
           </label>
           <textarea
             name="description"
+            disabled={isFormDisabled}
             value={formData.description}
             onChange={handleInputChange}
             placeholder="Add description"
-            className={`w-full px-4 py-2 border rounded-lg outline-none h-24 ${errors.description ? "border-red-500" : "border-gray-300"}`}
+            className={`w-full px-4 py-2 border rounded-lg outline-none h-24 transition-all ${
+              errors.description ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
+            } ${isFormDisabled ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
           />
           {errors.description && (
             <p className="text-red-500 text-xs mt-1">{errors.description}</p>
@@ -237,14 +304,15 @@ export default function EventUpdate() {
         <div className="flex justify-end gap-3 mt-2">
           <button
             type="button"
+            disabled={isFormDisabled}
             onClick={() => navigate("/dashboard/event")}
-            className="border border-gray-300 text-gray-700 font-semibold py-2.5 px-6 rounded-lg hover:bg-gray-50 transition-colors"
+            className="border border-gray-300 text-gray-700 font-semibold py-2.5 px-6 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            disabled={updateEventMutation.isPending || isLoadingCategories || isLoadingSpeakers}
+            disabled={isFormDisabled}
             className="bg-red-900 text-white font-semibold py-2.5 px-8 rounded-lg hover:bg-red-800 transition-colors shadow-sm active:scale-[0.98] disabled:opacity-50"
           >
             {updateEventMutation.isPending ? "Saving..." : "Save Changes"}

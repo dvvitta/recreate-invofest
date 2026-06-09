@@ -7,7 +7,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useAuthStore } from "../store/useAuthStore";
-import { useLogin } from "../Hooks/useAuth"; // Sesuaiin dengan path file hook lo
+import { useLogin } from "../Hooks/useAuth";
 
 const schema = z.object({
   email: z
@@ -23,7 +23,6 @@ export default function LoginForm() {
   const navigate = useNavigate();
   const loginStore = useAuthStore((state) => state.login);
 
-  // Panggil hook useLogin dari React Query
   const { mutate: loginMutate, isPending } = useLogin();
 
   const {
@@ -35,20 +34,16 @@ export default function LoginForm() {
   });
 
   const onSubmit = (data: FormData) => {
-    // Eksekusi mutasi login ke backend Railway
     loginMutate(data, {
       onSuccess: (res) => {
-        // 1. Simpan token ke localStorage agar bisa dibaca oleh getAuthConfig()
         localStorage.setItem("token", res.token);
 
-        // 2. Update state user di Zustand store lo
         loginStore(res.user.email);
 
         alert("Login berhasil!");
         navigate("/dashboard");
       },
       onError: (error: any) => {
-        // Ambil pesan error dari backend jika ada, kalau tidak tampilkan default error
         const errorMessage =
           error.response?.data?.message ||
           "Login gagal! Email atau password salah.";
@@ -80,8 +75,8 @@ export default function LoginForm() {
           <div className="flex justify-center w-full">
             <Button
               type="submit"
-              label="Login" // Tetap tulis "Login" karena komponen lo otomatis ganti jadi "Loading..." kalau loading={true}
-              loading={isPending} // Cukup kirim ini, bro!
+              label="Login"
+              loading={isPending}
               variant="primary"
             />
           </div>

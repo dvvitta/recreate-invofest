@@ -1,13 +1,11 @@
 import { Link } from "react-router-dom";
 import { Mail, Trash2, Edit, UserPlus } from "lucide-react";
-import { useGetUsers, useDeleteUser } from "../../../Hooks/useAuth"; // Sesuaikan path foldermu
+import { useGetUsers, useDeleteUser } from "../../../Hooks/useAuth"; 
 
 export default function UserIndex() {
-  // 1. Ambil data users & status loading/error secara real-time dari database via React Query
   const { data: users, isLoading, isError } = useGetUsers();
   const deleteUserMutation = useDeleteUser();
 
-  // 2. Handler untuk menghapus user langsung ke database
   const handleDelete = (id: number, name: string) => {
     if (window.confirm(`Are you sure you want to delete user "${name}"?`)) {
       deleteUserMutation.mutate(id, {
@@ -49,7 +47,6 @@ export default function UserIndex() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {/* STATUS LOADING */}
             {isLoading && (
               <tr>
                 <td colSpan={3} className="py-12 text-center text-gray-500 text-sm">
@@ -65,7 +62,7 @@ export default function UserIndex() {
             {isError && !isLoading && (
               <tr>
                 <td colSpan={3} className="py-12 text-center text-red-600 text-sm font-medium">
-                  Gagal mengambil data. Pastikan backend sudah aktif dan koneksi DB lancar.
+                  Gagal mengambil data. Pastikan koneksi internetmu stabil dan coba refresh halaman.
                 </td>
               </tr>
             )}
@@ -82,7 +79,6 @@ export default function UserIndex() {
             {/* LOOPING DATA USER DARI DATABASE */}
             {!isLoading && !isError && users?.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                {/* Kolom Nama */}
                 <td className="px-6 py-4 font-semibold text-gray-800">
                   {user.name}
                 </td>
@@ -106,7 +102,6 @@ export default function UserIndex() {
                     Edit
                   </Link>
                   
-                  {/* Tombol Delete dengan Loading State Mutator */}
                   <button
                     onClick={() => handleDelete(user.id, user.name)}
                     disabled={deleteUserMutation.isPending}

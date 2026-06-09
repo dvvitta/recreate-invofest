@@ -1,21 +1,19 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useGetCategoryById, useUpdateCategory } from "../../../Hooks/useCategories"; // Sesuaikan path hooks kamu
+import { useGetCategoryById, useUpdateCategory } from "../../../Hooks/useCategories"; 
+import toast from "react-hot-toast"; 
 
 export default function CategoryEdit() {
-  const { id } = useParams<{ id: string }>(); // Ambil ID dari URL router
-  const categoryId = Number(id); // Paksa string ID ke number (Int Prisma)
-  
+  const { id } = useParams<{ id: string }>(); 
+  const categoryId = Number(id); 
   const navigate = useNavigate();
 
-  // Ambil data kategori lama dan panggil fungsi mutasi update
   const { data: currentCategory, isLoading, isError } = useGetCategoryById(categoryId);
   const updateCategoryMutation = useUpdateCategory();
 
   const [categoryName, setCategoryName] = useState("");
   const [hasError, setHasError] = useState(false);
 
-  // Set nilai awal form input ketika data lama berhasil di-fetch dari Railway
   useEffect(() => {
     if (currentCategory) {
       setCategoryName(currentCategory.name);
@@ -25,30 +23,75 @@ export default function CategoryEdit() {
   const handleSaveClick = () => {
     if (categoryName.trim() === "") {
       setHasError(true);
+      toast.error("Nama kategori wajib diisi!", { id: "validation-category-edit-error" });
     } else {
       setHasError(false);
 
-      // Jalankan mutasi update data ke API backend
-      updateCategoryMutation.mutate(
-        { 
-          id: categoryId, 
-          updatedData: { name: categoryName } 
+      const updateCategoryPromise = new Promise((resolve, reject) => {
+        updateCategoryMutation.mutate(
+          { 
+            id: categoryId, 
+            updatedData: { name: categoryName } 
+          },
+          {
+            onSuccess: () => {
+              resolve(`Category berhasil diperbarui menjadi "${categoryName}"!`);
+              setTimeout(() => {
+                navigate("/dashboard/category"); 
+              }, 1000);
+            },
+            onError: (error: any) => {
+              const errorMessage = error.response?.data?.message || error.message || "Gagal memperbarui kategori.";
+              reject(errorMessage);
+            },
+          }
+        );
+      });
+
+      toast.promise(updateCategoryPromise, {
+        loading: "Sedang menyimpan perubahan kategori...",
+        success: (msg: any) => `${msg}`,
+        error: (err: any) => `${err}`,
+      }, {
+        style: {
+          borderRadius: "12px",
+          background: "#333",
+          color: "#fff",
+          fontSize: "14px",
         },
-        {
-          onSuccess: () => {
-            alert(`Category berhasil diperbarui menjadi "${categoryName}"!`);
-            navigate("/dashboard/category"); // Balik ke halaman utama tabel kategori
+        success: {
+          duration: 2000,
+          iconTheme: {
+            primary: "#7f1d1d", 
+            secondary: "#fff",
           },
-          onError: (error: any) => {
-            alert(`Gagal memperbarui: ${error?.response?.data?.message || error.message}`);
-          },
-        }
-      );
+        },
+      });
     }
   };
 
-  if (isLoading) return <div className="text-center mt-10 text-gray-500">Memuat data kategori lama...</div>;
-  if (isError) return <div className="text-center mt-10 text-red-600">Gagal memuat data. Kategori tidak ditemukan.</div>;
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-24 gap-2">
+        <div className="w-5 h-5 border-2 border-red-900 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-gray-500 text-sm">Memuat data kategori lama...</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="max-w-md mx-auto mt-10 p-6 bg-white border border-gray-200 rounded-xl shadow-sm text-center">
+        <p className="text-red-600 font-medium mb-4">Gagal memuat data. Kategori tidak ditemukan.</p>
+        <button 
+          onClick={() => navigate("/dashboard/category")}
+          className="text-sm font-semibold text-gray-600 hover:underline"
+        >
+          Kembali ke Manajemen Kategori
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
@@ -70,9 +113,9 @@ export default function CategoryEdit() {
               hasError
                 ? "border-red-500 focus:ring-2 focus:ring-red-200"
                 : "border-gray-300 focus:ring-2 focus:ring-red-900/20 focus:border-red-900"
-            }`}
+            } ${updateCategoryMutation.isPending ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
             placeholder="e.g. Technology"
-            disabled={updateCategoryMutation.isPending}
+            disabled={updateCategoryMutation.isPending} 
           />
           {hasError && (
             <p className="text-red-500 text-xs mt-1 font-medium">
@@ -85,8 +128,9 @@ export default function CategoryEdit() {
         <div className="flex justify-end gap-3">
           <button
             type="button"
+            disabled={updateCategoryMutation.isPending} 
             onClick={() => navigate("/dashboard/category")}
-            className="border border-gray-300 text-gray-700 font-semibold py-2.5 px-6 rounded-lg hover:bg-gray-50 transition-colors"
+            className="border border-gray-300 text-gray-700 font-semibold py-2.5 px-6 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>

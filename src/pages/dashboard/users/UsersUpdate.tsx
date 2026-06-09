@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useNavigate, useParams } from "react-router-dom";
-import { useGetUserById, useUpdateUser } from "../../../Hooks/useAuth"; // Pastikan path file hook lo pas
+import { useGetUserById, useUpdateUser } from "../../../Hooks/useAuth"; 
+import toast from "react-hot-toast"; 
 
-// Schema Zod diperbarui: password dibuat opsional untuk update
 const userUpdateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Must be a valid email address").min(1, "Email is required"),
@@ -11,13 +11,10 @@ const userUpdateSchema = z.object({
 });
 
 export default function UserUpdate() {
-  const { id } = useParams<{ id: string }>(); // Menangkap ID dari URL
+  const { id } = useParams<{ id: string }>(); 
   const navigate = useNavigate();
 
-  // 1. Ambil data lama user dari database online via React Query
   const { data: userBackend, isLoading: isLoadingFetch, isError } = useGetUserById(id);
-  
-  // 2. Siapkan mutator untuk trigger update ke backend
   const updateUserMutation = useUpdateUser();
 
   const [formData, setFormData] = useState({
@@ -28,13 +25,12 @@ export default function UserUpdate() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 3. Sinkronisasi data dari backend masuk ke local state form sewaktu loading beres
   useEffect(() => {
     if (userBackend) {
       setFormData({
         name: userBackend.name,
         email: userBackend.email,
-        password: "", // Kosong demi keamanan
+        password: "", 
       });
     }
   }, [userBackend]);
@@ -54,38 +50,59 @@ export default function UserUpdate() {
         fieldErrors[issue.path[0] as string] = issue.message;
       });
       setErrors(fieldErrors);
+      toast.error("Tolong periksa kembali data form jéh!", { id: "validation-error" });
     } else {
       setErrors({});
 
       if (!id) return;
 
-      // Siapkan payload akhir
       const updatePayload: Record<string, any> = {
         id: id,
         name: result.data.name,
         email: result.data.email,
       };
 
-      // Hanya kirim password jika user mengetik sesuatu di input password baru
       if (result.data.password) {
         updatePayload.password = result.data.password;
       }
 
-      // 4. Eksekusi kirim data ke API Railway
-      updateUserMutation.mutate(updatePayload as any, {
-        onSuccess: () => {
-          alert(`User "${formData.name}" berhasil diperbarui di database!`);
-          navigate("/dashboard/users");
+      const updatePromise = new Promise((resolve, reject) => {
+        updateUserMutation.mutate(updatePayload as any, {
+          onSuccess: () => {
+            resolve(`User "${formData.name}" berhasil diperbarui!`);
+            setTimeout(() => {
+              navigate("/dashboard/users");
+            }, 1000);
+          },
+          onError: (error: any) => {
+            const errorMessage = error.response?.data?.message || "Gagal memperbarui data user.";
+            reject(errorMessage);
+          },
+        });
+      });
+
+      toast.promise(updatePromise, {
+        loading: "Sedang memperbarui data user...",
+        success: (msg: any) => `${msg}`,
+        error: (err: any) => `${err}`,
+      }, {
+        style: {
+          borderRadius: "12px",
+          background: "#333",
+          color: "#fff",
+          fontSize: "14px",
         },
-        onError: (error: any) => {
-          const errorMessage = error.response?.data?.message || "Gagal memperbarui data user.";
-          alert(errorMessage);
-        }
+        success: {
+          duration: 2000,
+          iconTheme: {
+            primary: "#7f1d1d", 
+            secondary: "#fff",
+          },
+        },
       });
     }
   };
 
-  // Tampilan loading jika data lama sedang di-fetch dari server Railway
   if (isLoadingFetch) {
     return (
       <div className="flex justify-center items-center py-24 gap-2">
@@ -95,11 +112,10 @@ export default function UserUpdate() {
     );
   }
 
-  // Handle case jika user tidak ditemukan atau ada error jaringan
   if (isError) {
     return (
       <div className="max-w-md mx-auto mt-10 p-6 bg-white border border-gray-200 rounded-xl shadow-sm text-center">
-        <p className="text-red-600 font-medium mb-4">Gagal memuat data user dari database.</p>
+        <p className="text-red-600 font-medium mb-4">Gagal memuat data user.</p>
         <button 
           onClick={() => navigate("/dashboard/users")}
           className="text-sm font-semibold text-gray-600 hover:underline"
@@ -126,10 +142,10 @@ export default function UserUpdate() {
             disabled={updateUserMutation.isPending}
             value={formData.name}
             onChange={handleInputChange}
-            placeholder="e.g. Alex Graham"
+            placeholder="Name"
             className={`w-full px-4 py-2 border rounded-lg outline-none transition-all ${
               errors.name ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
-            }`}
+            } ${updateUserMutation.isPending ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
           />
           {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
         </div>
@@ -145,10 +161,10 @@ export default function UserUpdate() {
             disabled={updateUserMutation.isPending}
             value={formData.email}
             onChange={handleInputChange}
-            placeholder="alex@example.com"
+            placeholder="Email address"
             className={`w-full px-4 py-2 border rounded-lg outline-none transition-all ${
               errors.email ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
-            }`}
+            } ${updateUserMutation.isPending ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
           />
           {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
         </div>
@@ -164,10 +180,10 @@ export default function UserUpdate() {
             disabled={updateUserMutation.isPending}
             value={formData.password}
             onChange={handleInputChange}
-            placeholder="••••••••"
+            placeholder="Password"
             className={`w-full px-4 py-2 border rounded-lg outline-none transition-all ${
               errors.password ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
-            }`}
+            } ${updateUserMutation.isPending ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
           />
           {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
         </div>

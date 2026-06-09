@@ -5,7 +5,8 @@ import InputPassword from "../components/ui/InputPassword";
 import Button from "../components/ui/Button";
 import { z } from "zod";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useCreateUser } from "../Hooks/useAuth";
 
 type FormData = {
   nama: string;
@@ -38,9 +39,11 @@ const kategoriOptions = [
 ];
 
 export default function RegisterForm() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const createUserMutation = useCreateUser();
 
   const {
     register,
@@ -52,23 +55,34 @@ export default function RegisterForm() {
     mode: "onSubmit",
   });
 
-  const onSubmit = async (data: FormData) => {
-    setLoading(true);
+  const onSubmit = (data: FormData) => {
     setSuccess(false);
 
-    try {
-      await new Promise((res) => setTimeout(res, 1500));
-      console.log("DATA:", data);
+    const registerPayload = {
+      name: data.nama,
+      email: data.email,
+      password: data.password,
+    };
 
-      setSuccess(true);
-      reset();
+    createUserMutation.mutate(registerPayload, {
+      onSuccess: () => {
+        setSuccess(true);
+        reset();
 
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+        alert(`Akun "${data.nama}" berhasil dibuat! Silakan login.`);
+
+        setTimeout(() => {
+          setSuccess(false);
+          navigate("/login");
+        }, 1500);
+      },
+      onError: (error: any) => {
+        const errorMessage =
+          error.response?.data?.message ||
+          "Registrasi gagal, terjadi kesalahan.";
+        alert(errorMessage);
+      },
+    });
   };
 
   return (
@@ -81,6 +95,7 @@ export default function RegisterForm() {
         <InputText
           label="Nama Lengkap"
           nama="nama"
+          disabled={createUserMutation.isPending}
           register={register}
           error={errors.nama?.message}
         />
@@ -88,23 +103,25 @@ export default function RegisterForm() {
           label="Email"
           nama="email"
           type="email"
+          disabled={createUserMutation.isPending}
           register={register}
           error={errors.email?.message}
         />
         <InputPassword
           label="Password"
           nama="password"
+          disabled={createUserMutation.isPending}
           register={register}
           error={errors.password?.message}
         />
         <InputPassword
           label="Confirm Password"
           nama="password_confirm"
+          disabled={createUserMutation.isPending}
           register={register}
           error={errors.password_confirm?.message}
         />
 
-        {/* Dropdown Kategori dengan Animasi Ikon */}
         <div className="flex flex-col gap-1">
           <label className="text-sm font-semibold text-gray-700">
             Event Category
@@ -112,11 +129,14 @@ export default function RegisterForm() {
           <div className="relative w-full">
             <select
               {...register("kategori")}
-              onClick={() => setIsOpen(!isOpen)}
+              disabled={createUserMutation.isPending}
+              onClick={() =>
+                !createUserMutation.isPending && setIsOpen(!isOpen)
+              }
               onBlur={() => setIsOpen(false)}
               className={`w-full p-3 bg-white rounded-xl border outline-none appearance-none transition-all focus:ring-2 focus:ring-red-200 relative z-10 cursor-pointer ${
                 errors.kategori ? "border-red-500 bg-red-50" : "border-gray-300"
-              }`}
+              } ${createUserMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <option value="">Select event category..</option>
               {kategoriOptions.map((opt) => (
@@ -147,9 +167,10 @@ export default function RegisterForm() {
           <label className="text-sm font-semibold text-gray-700">Bio</label>
           <textarea
             {...register("bio")}
+            disabled={createUserMutation.isPending}
             className={`p-3 rounded-xl border outline-none h-20 transition-all focus:ring-2 focus:ring-red-200 ${
               errors.bio ? "border-red-500 bg-red-50" : "border-gray-300"
-            }`}
+            } ${createUserMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
             placeholder="Ceritakan tentang diri Anda..."
           />
           {errors.bio && (
@@ -158,12 +179,17 @@ export default function RegisterForm() {
         </div>
 
         <div className="flex justify-center w-full">
-          <Button type="submit" label="register" variant="primary" />
+          <Button
+            type="submit"
+            label="Register"
+            loading={createUserMutation.isPending}
+            variant="primary"
+          />
         </div>
 
         {success && (
           <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm text-center font-medium animate-in fade-in duration-500">
-            Registrasi berhasil!
+            Registrasi berhasil! Mengalihkan...
           </div>
         )}
       </form>

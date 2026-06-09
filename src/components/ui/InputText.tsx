@@ -5,6 +5,7 @@ interface InputTextProps {
   error?: string;
   type?: string;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 const InputText: React.FC<InputTextProps> = ({

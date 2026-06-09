@@ -1,4 +1,5 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Toaster } from "react-hot-toast"; 
 import Beranda from "./pages/Beranda";
 import Seminar from "./pages/Seminar";
 import Competition from "./pages/Competition";
@@ -24,9 +25,12 @@ import BiodataIndex from "./pages/dashboard/biodata/biodataIndex";
 import UsersIndex from "./pages/dashboard/users/UsersIndex";
 import UsersCreate from "./pages/dashboard/users/UsersCreate";
 import UsersUpdate from "./pages/dashboard/users/UsersUpdate";
+
 function App() {
   return (
     <div>
+      <Toaster position="top-center" reverseOrder={false} />
+
       <BrowserRouter>
         <Routes>
           {/* Main Public Routes */}
@@ -62,10 +66,10 @@ function App() {
               <Route path="/dashboard/speakers/create" element={<SpeakersCreate />} />
               <Route path="/dashboard/speakers/edit/:id" element={<SpeakersUpdate />} /> 
 
-              {/* 2. ▲ DAFTARKAN RUTE BIODATA DI SINI (Di dalam struktur DashboardLayout) */}
+              {/* Rute Biodata */}
               <Route path="/dashboard/biodata" element={<BiodataIndex />} />
 
-              {/* 3. ▲ DAFTARKAN RUTE USERS DI SINI (Di dalam struktur DashboardLayout) */}
+              {/* Rute Users */}
               <Route path="/dashboard/users" element={<UsersIndex />} />
               <Route path="/dashboard/users/create" element={<UsersCreate />} />
               <Route path="/dashboard/users/edit/:id" element={<UsersUpdate />} />

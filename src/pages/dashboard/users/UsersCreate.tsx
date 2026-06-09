@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { z } from "zod";
 import { useNavigate } from "react-router-dom";
-import { useCreateUser } from "../../../Hooks/useAuth"; // Pastikan path import-nya pas, bro
+import { useCreateUser } from "../../../Hooks/useAuth"; 
+import toast from "react-hot-toast"; 
 
-// Schema Zod
 const userSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Must be a valid email address").min(1, "Email is required"),
@@ -12,8 +12,6 @@ const userSchema = z.object({
 
 export default function UserCreate() {
   const navigate = useNavigate();
-  
-  // Panggil hook create user dari React Query
   const createUserMutation = useCreateUser();
 
   const [formData, setFormData] = useState({
@@ -39,20 +37,43 @@ export default function UserCreate() {
         fieldErrors[issue.path[0] as string] = issue.message;
       });
       setErrors(fieldErrors);
+      toast.error("Tolong lengkapi form dengan benar jéh!", { id: "validation-error" });
     } else {
       setErrors({});
 
-      // Eksekusi mutasi simpan data ke API Railway
-      createUserMutation.mutate(result.data, {
-        onSuccess: () => {
-          alert(`User "${formData.name}" berhasil disimpan ke database!`);
-          navigate("/dashboard/users"); // Balik ke halaman table user
+      const savePromise = new Promise((resolve, reject) => {
+        createUserMutation.mutate(result.data, {
+          onSuccess: () => {
+            resolve(`User "${formData.name}" berhasil disimpan!`);
+            setTimeout(() => {
+              navigate("/dashboard/users");
+            }, 1000);
+          },
+          onError: (error: any) => {
+            const errorMessage = error.response?.data?.message || "Gagal menyimpan user baru.";
+            reject(errorMessage);
+          },
+        });
+      });
+
+      toast.promise(savePromise, {
+        loading: "Sedang menyimpan user...",
+        success: (msg: any) => `${msg}`,
+        error: (err: any) => `${err}`,
+      }, {
+        style: {
+          borderRadius: "12px",
+          background: "#333",
+          color: "#fff",
+          fontSize: "14px",
         },
-        onError: (error: any) => {
-          // Tangkap pesan error dari backend jika email sudah terdaftar dsb.
-          const errorMessage = error.response?.data?.message || "Gagal menyimpan user baru.";
-          alert(errorMessage);
-        }
+        success: {
+          duration: 2000,
+          iconTheme: {
+            primary: "#7f1d1d", 
+            secondary: "#fff",
+          },
+        },
       });
     }
   };
@@ -73,10 +94,10 @@ export default function UserCreate() {
             disabled={createUserMutation.isPending}
             value={formData.name}
             onChange={handleInputChange}
-            placeholder="e.g. Alex Graham"
+            placeholder="Name"
             className={`w-full px-4 py-2 border rounded-lg outline-none transition-all ${
               errors.name ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
-            }`}
+            } ${createUserMutation.isPending ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
           />
           {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
         </div>
@@ -92,10 +113,10 @@ export default function UserCreate() {
             disabled={createUserMutation.isPending}
             value={formData.email}
             onChange={handleInputChange}
-            placeholder="alex@example.com"
+            placeholder="Email address"
             className={`w-full px-4 py-2 border rounded-lg outline-none transition-all ${
               errors.email ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
-            }`}
+            } ${createUserMutation.isPending ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
           />
           {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
         </div>
@@ -111,10 +132,10 @@ export default function UserCreate() {
             disabled={createUserMutation.isPending}
             value={formData.password}
             onChange={handleInputChange}
-            placeholder="••••••••"
+            placeholder="Password"
             className={`w-full px-4 py-2 border rounded-lg outline-none transition-all ${
               errors.password ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
-            }`}
+            } ${createUserMutation.isPending ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
           />
           {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
         </div>

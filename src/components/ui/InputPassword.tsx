@@ -5,6 +5,7 @@ interface InputPasswordProps {
   nama: string;
   register: any;
   error?: string;
+  disabled?: boolean;
 }
 
 const InputPassword: React.FC<InputPasswordProps> = ({
@@ -12,6 +13,7 @@ const InputPassword: React.FC<InputPasswordProps> = ({
   nama,
   register,
   error,
+  disabled, 
 }) => {
   const [show, setShow] = useState(false);
 
@@ -21,6 +23,7 @@ const InputPassword: React.FC<InputPasswordProps> = ({
       <div className="relative">
         <input
           type={show ? "text" : "password"}
+          disabled={disabled} // 2. PASANG DI TAG INPUT
           {...register(nama)}
           placeholder={label}
           className={`p-2 rounded-xl w-full pr-12 outline-none transition-all
@@ -29,13 +32,17 @@ const InputPassword: React.FC<InputPasswordProps> = ({
                 ? "border border-red-500 bg-red-50 focus:ring-2 focus:ring-red-400"
                 : "border border-gray-300 focus:ring-2 focus:ring-red-200"
             }
+            ${
+              disabled ? "bg-gray-100 text-gray-400 cursor-not-allowed opacity-70" : ""
+            }
           `}
         />
 
         <button
           type="button"
+          disabled={disabled} 
           onClick={() => setShow(!show)}
-          className="absolute right-3 top-2 text-xs text-gray-500"
+          className="absolute right-3 top-2 text-xs text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {show ? "Hide" : "Show"}
         </button>

@@ -1,23 +1,32 @@
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useNavigate, useParams } from "react-router-dom";
-import { useGetSpeakerById, useUpdateSpeaker } from "../../../Hooks/useSpeakers"; // Sesuaikan path relative ke hooks kamu
+import {
+  useGetSpeakerById,
+  useUpdateSpeaker,
+} from "../../../Hooks/useSpeakers";
+import toast from "react-hot-toast"; 
 
-// Schema Zod untuk validasi data Speaker saat update
 const speakerSchema = z.object({
   name: z.string().min(1, "Speaker name is required"),
   role: z.string().min(1, "Role is required"),
-  image: z.string().url("Must be a valid image URL").min(1, "Speaker image URL is required"),
+  image: z
+    .string()
+    .url("Must be a valid image URL")
+    .min(1, "Speaker image URL is required"),
 });
 
 export default function SpeakersUpdate() {
-  const { id } = useParams<{ id: string }>(); // Tangkap ID pembicara dari URL
-  const speakerId = Number(id); // Konversi ke tipe number (Int Prisma)
+  const { id } = useParams<{ id: string }>();
+  const speakerId = Number(id);
 
   const navigate = useNavigate();
 
-  // Fetch data pembicara lama & panggil fungsi mutasi update
-  const { data: currentSpeaker, isLoading, isError } = useGetSpeakerById(speakerId);
+  const {
+    data: currentSpeaker,
+    isLoading,
+    isError,
+  } = useGetSpeakerById(speakerId);
   const updateSpeakerMutation = useUpdateSpeaker();
 
   const [formData, setFormData] = useState({
@@ -27,7 +36,6 @@ export default function SpeakersUpdate() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Isi form secara otomatis begitu data pembicara lama berhasil ditarik dari Railway
   useEffect(() => {
     if (currentSpeaker) {
       setFormData({
@@ -52,37 +60,81 @@ export default function SpeakersUpdate() {
         fieldErrors[issue.path[0] as string] = issue.message;
       });
       setErrors(fieldErrors);
+      toast.error("Tolong periksa kembali isi form!", { id: "validation-update-speaker" });
     } else {
       setErrors({});
 
-      // Jalankan mutasi update data ke API backend Railway
-      updateSpeakerMutation.mutate(
-        {
-          id: speakerId,
-          updatedData: result.data,
+      const updateSpeakerPromise = new Promise((resolve, reject) => {
+        updateSpeakerMutation.mutate(
+          {
+            id: speakerId,
+            updatedData: result.data,
+          },
+          {
+            onSuccess: () => {
+              resolve(`Data pembicara "${formData.name}" berhasil diperbarui!`);
+              setTimeout(() => {
+                navigate("/dashboard/speakers");
+              }, 1000);
+            },
+            onError: (error: any) => {
+              const errorMessage = error.response?.data?.message || error.message || "Gagal memperbarui data speaker.";
+              reject(errorMessage);
+            },
+          },
+        );
+      });
+
+      toast.promise(updateSpeakerPromise, {
+        loading: "Sedang memperbarui data pembicara...",
+        success: (msg: any) => `${msg}`,
+        error: (err: any) => `${err}`,
+      }, {
+        style: {
+          borderRadius: "12px",
+          background: "#333",
+          color: "#fff",
+          fontSize: "14px",
         },
-        {
-          onSuccess: () => {
-            alert(`Data pembicara "${formData.name}" berhasil diperbarui!`);
-            navigate("/dashboard/speakers"); // Balik ke halaman list utama pembicara
+        success: {
+          duration: 2000,
+          iconTheme: {
+            primary: "#7f1d1d", 
+            secondary: "#fff",
           },
-          onError: (error: any) => {
-            alert(`Gagal memperbarui data: ${error?.response?.data?.message || error.message}`);
-          },
-        }
-      );
+        },
+      });
     }
   };
 
-  if (isLoading) return <div className="text-center mt-10 text-gray-500">Memuat data pembicara lama...</div>;
-  if (isError) return <div className="text-center mt-10 text-red-600">Gagal memuat data. Pembicara tidak ditemukan.</div>;
+  if (isLoading)
+    return (
+      <div className="flex justify-center items-center py-24 gap-2">
+        <div className="w-5 h-5 border-2 border-red-900 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-gray-500 text-sm">Memuat data pembicara lama...</p>
+      </div>
+    );
+
+  if (isError)
+    return (
+      <div className="max-w-md mx-auto mt-10 p-6 bg-white border border-gray-200 rounded-xl shadow-sm text-center">
+        <p className="text-red-600 font-medium mb-4">Gagal memuat data. Pembicara tidak ditemukan.</p>
+        <button 
+          onClick={() => navigate("/dashboard/speakers")}
+          className="text-sm font-semibold text-gray-600 hover:underline"
+        >
+          Kembali ke Manajemen Speaker
+        </button>
+      </div>
+    );
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-      <h2 className="text-xl font-bold text-center text-gray-800 mb-6">Edit Speaker Details</h2>
+      <h2 className="text-xl font-bold text-center text-gray-800 mb-6">
+        Edit Speaker Details
+      </h2>
 
       <div className="flex flex-col gap-4">
-        {/* Preview Avatar Saat Ini */}
         {formData.image && !errors.image && (
           <div className="flex justify-center mb-2">
             <img
@@ -90,7 +142,7 @@ export default function SpeakersUpdate() {
               alt="Preview"
               className="w-20 h-20 object-cover rounded-full border border-gray-200 shadow-sm"
               onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none'; // Sembunyikan preview jika URL salah sewaktu mengetik
+                (e.target as HTMLImageElement).style.display = "none";
               }}
             />
           </div>
@@ -104,10 +156,13 @@ export default function SpeakersUpdate() {
           <input
             name="name"
             type="text"
+            disabled={updateSpeakerMutation.isPending}
             value={formData.name}
             onChange={handleInputChange}
             placeholder="e.g. John Doe"
-            className={`w-full px-4 py-2 border rounded-lg outline-none ${errors.name ? "border-red-500" : "border-gray-300 focus:border-red-900"}`}
+            className={`w-full px-4 py-2 border rounded-lg outline-none transition-all ${
+              errors.name ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
+            } ${updateSpeakerMutation.isPending ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
           />
           {errors.name && (
             <p className="text-red-500 text-xs mt-1">{errors.name}</p>
@@ -122,10 +177,13 @@ export default function SpeakersUpdate() {
           <input
             name="role"
             type="text"
+            disabled={updateSpeakerMutation.isPending}
             value={formData.role}
             onChange={handleInputChange}
             placeholder="e.g. Senior Web Developer"
-            className={`w-full px-4 py-2 border rounded-lg outline-none ${errors.role ? "border-red-500" : "border-gray-300 focus:border-red-900"}`}
+            className={`w-full px-4 py-2 border rounded-lg outline-none transition-all ${
+              errors.role ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
+            } ${updateSpeakerMutation.isPending ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
           />
           {errors.role && (
             <p className="text-red-500 text-xs mt-1">{errors.role}</p>
@@ -140,10 +198,13 @@ export default function SpeakersUpdate() {
           <input
             name="image"
             type="text"
+            disabled={updateSpeakerMutation.isPending}
             value={formData.image}
             onChange={handleInputChange}
             placeholder="https://example.com/avatar.jpg"
-            className={`w-full px-4 py-2 border rounded-lg outline-none ${errors.image ? "border-red-500" : "border-gray-300 focus:border-red-900"}`}
+            className={`w-full px-4 py-2 border rounded-lg outline-none transition-all ${
+              errors.image ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-red-900"
+            } ${updateSpeakerMutation.isPending ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
           />
           {errors.image && (
             <p className="text-red-500 text-xs mt-1">{errors.image}</p>
@@ -154,8 +215,9 @@ export default function SpeakersUpdate() {
         <div className="flex justify-end gap-3 mt-2">
           <button
             type="button"
+            disabled={updateSpeakerMutation.isPending}
             onClick={() => navigate("/dashboard/speakers")}
-            className="border border-gray-300 text-gray-700 font-semibold py-2.5 px-6 rounded-lg hover:bg-gray-50 transition-colors"
+            className="border border-gray-300 text-gray-700 font-semibold py-2.5 px-6 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
