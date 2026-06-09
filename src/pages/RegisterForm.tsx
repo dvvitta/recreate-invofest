@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCreateUser } from "../Hooks/useAuth";
+import toast from "react-hot-toast";
 
 type FormData = {
   nama: string;
@@ -41,7 +42,6 @@ const kategoriOptions = [
 export default function RegisterForm() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const createUserMutation = useCreateUser();
 
@@ -56,33 +56,54 @@ export default function RegisterForm() {
   });
 
   const onSubmit = (data: FormData) => {
-    setSuccess(false);
-
     const registerPayload = {
       name: data.nama,
       email: data.email,
       password: data.password,
     };
 
-    createUserMutation.mutate(registerPayload, {
-      onSuccess: () => {
-        setSuccess(true);
-        reset();
+    const registerPromise = new Promise((resolve, reject) => {
+      createUserMutation.mutate(registerPayload, {
+        onSuccess: () => {
+          reset();
+          resolve(`Akun "${data.nama}" berhasil dibuat! Mengalihkan...`);
 
-        alert(`Akun "${data.nama}" berhasil dibuat! Silakan login.`);
-
-        setTimeout(() => {
-          setSuccess(false);
-          navigate("/login");
-        }, 1500);
-      },
-      onError: (error: any) => {
-        const errorMessage =
-          error.response?.data?.message ||
-          "Registrasi gagal, terjadi kesalahan.";
-        alert(errorMessage);
-      },
+          setTimeout(() => {
+            navigate("/login");
+          }, 1500);
+        },
+        onError: (error: any) => {
+          const errorMessage =
+            error.response?.data?.message ||
+            "Registrasi gagal, terjadi kesalahan.";
+          reject(errorMessage);
+        },
+      });
     });
+
+    toast.promise(
+      registerPromise,
+      {
+        loading: "Sedang membuat akun baru...",
+        success: (msg: any) => `${msg}`,
+        error: (err: any) => `${err}`,
+      },
+      {
+        style: {
+          borderRadius: "12px",
+          background: "#333",
+          color: "#fff",
+          fontSize: "14px",
+        },
+        success: {
+          duration: 2500,
+          iconTheme: {
+            primary: "#7f1d1d",
+            secondary: "#fff",
+          },
+        },
+      },
+    );
   };
 
   return (
@@ -128,15 +149,16 @@ export default function RegisterForm() {
           </label>
           <div className="relative w-full">
             <select
-              {...register("kategori")}
-              disabled={createUserMutation.isPending}
+              {...register("kategori", {
+                disabled: createUserMutation.isPending,
+              })}
               onClick={() =>
                 !createUserMutation.isPending && setIsOpen(!isOpen)
               }
               onBlur={() => setIsOpen(false)}
               className={`w-full p-3 bg-white rounded-xl border outline-none appearance-none transition-all focus:ring-2 focus:ring-red-200 relative z-10 cursor-pointer ${
                 errors.kategori ? "border-red-500 bg-red-50" : "border-gray-300"
-              } ${createUserMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+              } ${createUserMutation.isPending ? "opacity-50 cursor-not-allowed bg-gray-50" : ""}`}
             >
               <option value="">Select event category..</option>
               {kategoriOptions.map((opt) => (
@@ -163,14 +185,14 @@ export default function RegisterForm() {
           )}
         </div>
 
+        {/* Textarea Bio dengan Native Register Handling */}
         <div className="flex flex-col gap-1">
           <label className="text-sm font-semibold text-gray-700">Bio</label>
           <textarea
-            {...register("bio")}
-            disabled={createUserMutation.isPending}
+            {...register("bio", { disabled: createUserMutation.isPending })}
             className={`p-3 rounded-xl border outline-none h-20 transition-all focus:ring-2 focus:ring-red-200 ${
               errors.bio ? "border-red-500 bg-red-50" : "border-gray-300"
-            } ${createUserMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+            } ${createUserMutation.isPending ? "opacity-50 cursor-not-allowed bg-gray-50" : ""}`}
             placeholder="Ceritakan tentang diri Anda..."
           />
           {errors.bio && (
@@ -186,12 +208,6 @@ export default function RegisterForm() {
             variant="primary"
           />
         </div>
-
-        {success && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm text-center font-medium animate-in fade-in duration-500">
-            Registrasi berhasil! Mengalihkan...
-          </div>
-        )}
       </form>
 
       <p className="mt-6 text-sm text-center text-gray-500">

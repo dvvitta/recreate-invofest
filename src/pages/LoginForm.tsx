@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useAuthStore } from "../store/useAuthStore";
 import { useLogin } from "../Hooks/useAuth";
+import toast from "react-hot-toast"; 
 
 const schema = z.object({
   email: z
@@ -34,20 +35,44 @@ export default function LoginForm() {
   });
 
   const onSubmit = (data: FormData) => {
-    loginMutate(data, {
-      onSuccess: (res) => {
-        localStorage.setItem("token", res.token);
+    const loginPromise = new Promise((resolve, reject) => {
+      loginMutate(data, {
+        onSuccess: (res) => {
+          localStorage.setItem("token", res.token);
+          loginStore(res.user.email);
 
-        loginStore(res.user.email);
+          resolve("Login berhasil! Mengalihkan...");
+          
+          setTimeout(() => {
+            navigate("/dashboard");
+          }, 1000);
+        },
+        onError: (error: any) => {
+          const errorMessage =
+            error.response?.data?.message ||
+            "Login gagal! Email atau password salah.";
+          reject(errorMessage);
+        },
+      });
+    });
 
-        alert("Login berhasil!");
-        navigate("/dashboard");
+    toast.promise(loginPromise, {
+      loading: "Sedang memverifikasi akun...",
+      success: (msg: any) => `${msg}`,
+      error: (err: any) => `${err}`,
+    }, {
+      style: {
+        borderRadius: "12px",
+        background: "#333",
+        color: "#fff",
+        fontSize: "14px",
       },
-      onError: (error: any) => {
-        const errorMessage =
-          error.response?.data?.message ||
-          "Login gagal! Email atau password salah.";
-        alert(errorMessage);
+      success: {
+        duration: 2000,
+        iconTheme: {
+          primary: "#7f1d1d", 
+          secondary: "#fff",
+        },
       },
     });
   };
@@ -61,6 +86,7 @@ export default function LoginForm() {
           <InputText
             label="Email"
             nama="email"
+            disabled={isPending} 
             register={register}
             error={errors.email?.message}
           />
@@ -68,6 +94,7 @@ export default function LoginForm() {
           <InputPassword
             label="Password"
             nama="password"
+            disabled={isPending}
             register={register}
             error={errors.password?.message}
           />
