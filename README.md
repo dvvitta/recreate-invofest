@@ -28,7 +28,8 @@ Aplikasi ini dibangun di atas fondasi teknologi modern yang mengutamakan perform
 
 ---
 
-Credentials & Demo Video
+## Credentials & Demo Video
+
 Berikut adalah informasi akun peninjauan sistem serta dokumentasi aplikasi:
 
 Email: devita@gmail.com
@@ -39,7 +40,8 @@ Link Video Youtube: https://youtu.be/zT4THS-7org
 
 ---
 
-Author & Kepenulisan
+## Author & Kepenulisan
+
 Project ini dikembangkan dan dipelihara sepenuhnya oleh:
 
 Nama Lengkap: Devita Anggraeni 
